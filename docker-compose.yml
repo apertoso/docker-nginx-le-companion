@@ -1,0 +1,53 @@
+---
+version: '2'
+services:
+  certbot:
+    container_name: certbot
+    image: certbot
+    build: certbot
+    environment:
+     - "LETSENCRYPT_EMAIL=info@example.com"
+    volumes:
+     - "/srv/certbot-data/etc:/etc/letsencrypt"
+     - "/srv/certbot-data/var_lib:/var/lib/letsencrypt"
+     - "/srv/certbot-data/webroot:/srv/webroot/"
+    labels:
+      - "certbot_container=Yes"
+  nginx-certbot-conf:
+    container_name: nginx-certbot-conf
+    image: nginx-certbot-conf
+    build: nginx-certbot-conf
+    volumes:
+     - "/var/run/docker.sock:/var/run/docker.sock"
+     - "/srv/certbot-data/etc:/etc/letsencrypt"
+     - "/srv/nginx/vhosts-conf.d:/srv/nginx-vhosts-conf.d"
+  nginx:
+    container_name: nginx
+    image: nginx
+    build: nginx
+    ports:
+     - "443:443"
+     - "443:443/udp"
+     - "80:80"
+    volumes:
+     - "/srv/nginx/vhosts-conf.d:/etc/nginx/vhosts-conf.d:ro"
+     - "/srv/nginx/dhparam.pem:/etc/ssl/dhparam.pem:ro"
+     - "/srv/certbot-data/webroot:/srv/webroot/:ro"
+     - "/srv/certbot-data/etc:/etc/letsencrypt:ro"
+    labels:
+     - "proxy_container=Yes"
+    links:
+     - app1
+     - app2
+  app1:
+    container_name: app1
+    image: app
+    build: app
+    labels:
+     - "vhost_primary_domain=app1.example.com"
+  app2:
+    container_name: app2
+    image: app
+    build: app
+    labels:
+     - "vhost_primary_domain=app2.example.com"

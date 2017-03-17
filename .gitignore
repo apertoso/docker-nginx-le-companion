@@ -1,0 +1,40 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Python gitignores template
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Translations
+*.mo
+
+# Mr Mac
+.DS_Store
+
+.idea
+
+# Django stuff:
+*.log
+
+# Sphinx documentation
+docs/_build/### Python gitignores template
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Translations
+*.mo
+
+# Mr Mac
+.DS_Store
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+.settings
+
+# Django stuff:
+*.log
+
+# Sphinx documentation
+docs/_build/
