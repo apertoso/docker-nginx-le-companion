@@ -1,0 +1,72 @@
+##
+# Backend directives
+#
+upstream {{ domain }} {
+{% for (endpoint) in endpoints %}
+    server {{ endpoint }}:{{ port }};
+{% endfor %}
+}
+
+# port 80 server directive
+server {
+    listen 80;
+    server_name {{ domain }};
+
+    # letsencrypt certbot webroot
+    # https://community.letsencrypt.org/t/how-to-nginx-configuration-to-enable-acme-challenge-support-on-all-http-virtual-hosts/5622
+    location ^~ /.well-known {
+        default_type "text/plain";
+        root /srv/webroot/ ;
+    }
+    location = /.well-known/acme-challenge/ {
+        return 404;
+    }
+
+    {% if not no_hsts and enable_ssl %}
+    # Set HSTS to 365 days
+    add_header Strict-Transport-Security 'max-age=31536000; includeSubDomains';
+
+    {% endif %}
+    # redirect non http requests to https
+    rewrite ^/.*$ https://$host$request_uri? permanent;
+}
+
+{% if enable_ssl %}
+server {
+
+    listen 443 ssl http2;
+    server_name {{ domain }};
+
+    # ssl certificate files
+    ssl_certificate      /etc/letsencrypt/live/{{ domain }}/fullchain.pem;
+    ssl_certificate_key  /etc/letsencrypt/live/{{ domain }}/privkey.pem;
+
+    {% if not no_hsts %}
+    # Set HSTS to 365 days
+    add_header Strict-Transport-Security 'max-age=31536000; includeSubDomains';
+
+    {% endif %}
+    location / {
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_pass http://{{ domain }};
+    }
+    location /api/websocket/ {
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_http_version 1.1;
+        proxy_pass http://{{ domain }};
+    }
+
+    # letsencrypt certbot webroot
+    # https://community.letsencrypt.org/t/how-to-nginx-configuration-to-enable-acme-challenge-support-on-all-http-virtual-hosts/5622
+    location ^~ /.well-known {
+        default_type "text/plain";
+        root /srv/webroot/ ;
+    }
+    location = /.well-known/acme-challenge/ {
+        return 404;
+    }
+
+}
+{% endif %}

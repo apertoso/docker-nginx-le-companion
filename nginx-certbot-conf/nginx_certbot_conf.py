@@ -56,15 +56,18 @@ class NginxCertbotConfigurator(object):
     def __init__(self):
         self.docker_client = docker.from_env()
 
-        self.template_vhosts_conf = jinja2.Environment(
-            loader=jinja2.FileSystemLoader('/')
-        ).get_template('odoo-vhost.conf.j2')
-
+        self.template_loader = jinja2.Environment(
+            loader=jinja2.FileSystemLoader('/templates/')
+        )
         self.nginx_queue = WorkQueue(
             function=self.renew_nginx_config,
             delay=10
         )
         self.nginx_queue.start()
+
+    def get_vhost_template(self, template):
+        template_name = '%s-vhost.conf.j2' % template
+        return self.template_loader.get_template(template_name)
 
     def get_containers_info(self):
 
@@ -74,8 +77,12 @@ class NginxCertbotConfigurator(object):
             container = container_obj.attrs
             domain = container['Config']['Labels'].get(
                 'vhost_primary_domain')
-            no_hsts = container['Config']['Labels'].get('no_hsts',
-                                                        False)
+            no_hsts = container['Config']['Labels'].get(
+                'no_hsts', False)
+            port = container['Config']['Labels'].get(
+                'vhost_backend_port', False)
+            template = container['Config']['Labels'].get(
+                'vhost_template', 'odoo')
             enable_ssl = self.check_certificate_files(domain)
             if domain is None:
                 continue
@@ -102,6 +109,8 @@ class NginxCertbotConfigurator(object):
                 'endpoints': endpoints,
                 'no_hsts': no_hsts,
                 'enable_ssl': enable_ssl,
+                'port': port,
+                'template': template,
             })
             vhosts_map.update({domain: vhost_data})
 
@@ -168,11 +177,14 @@ class NginxCertbotConfigurator(object):
         return found
 
     def render_template(self, context):
+        template = context.get('template')
+        jinja_template = self.get_vhost_template(template)
         domain = context['domain']
         _logger.debug('Rendering template for domain "%s"' % domain)
-        template_file = NGINX_VHOSTS_CONF_PATH + '/odoo-vhost-%s.conf' % domain
-        with open(template_file, 'w') as vhosts_conf:
-            vhosts_conf.write(self.template_vhosts_conf.render(context))
+        config_file = NGINX_VHOSTS_CONF_PATH + '/%s-vhost-%s.conf' % (
+            template, domain)
+        with open(config_file, 'w') as config_fileh:
+            config_fileh.write(jinja_template.render(context))
 
     @staticmethod
     def cleanup_templates(domains):

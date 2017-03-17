@@ -1,7 +1,8 @@
 FROM alpine
 
 # copy files into filesystem
-ADD nginx_certbot_conf.py requirements.txt odoo-vhost.conf.j2 /
+ADD nginx_certbot_conf.py requirements.txt /
+ADD templates/*.conf.j2 /templates/
 
 # basic flask environment
 RUN apk add --no-cache inotify-tools py2-pip \

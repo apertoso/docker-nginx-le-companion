@@ -45,9 +45,21 @@ services:
     build: app
     labels:
      - "vhost_primary_domain=app1.example.com"
+     - "vhost_template=odoo"
   app2:
     container_name: app2
     image: app
     build: app
     labels:
      - "vhost_primary_domain=app2.example.com"
+     - "vhost_template=odoo"
+  portainer:
+    container_name: portainer
+    image: portainer/portainer
+    labels:
+     - "vhost_primary_domain=portainer.example.com"
+     - "vhost_template=portainer"
+     - "vhost_backend_port=9000"
+    volumes:
+     - "/srv/portainer:/data"
+     - "/var/run/docker.sock:/var/run/docker.sock"
